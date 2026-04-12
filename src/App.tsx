@@ -13,7 +13,7 @@ import { JournalPage } from "./routes/JournalPage";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/Tarot_training">
       <ProgressProvider>
         <Routes>
           <Route path="/" element={<AppShell />}>
