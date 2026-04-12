@@ -27,7 +27,10 @@ export interface TarotCard {
 
   description: string;
   symbolism: string[];
-  lifeScenes: string[];
+  lifeScenes: {
+    upright: string[];
+    reversed: string[];
+  };
   affirmation: string;
   numerology?: string;
 }

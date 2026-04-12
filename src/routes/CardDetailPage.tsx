@@ -100,7 +100,7 @@ export function CardDetailPage() {
             <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-veil">
               <h3 className="text-sm font-heading text-mystic-gold mb-2">生活联想</h3>
               <ul className="space-y-1">
-                {card.lifeScenes.map((scene, i) => (
+                {card.lifeScenes.upright.map((scene, i) => (
                   <li key={i} className="text-mystic-star text-sm flex items-start gap-2">
                     <span className="text-mystic-gold/40 mt-0.5">·</span>{scene}
                   </li>
