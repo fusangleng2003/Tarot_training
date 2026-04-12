@@ -77,15 +77,18 @@ export function HomePage() {
                 <span className="ml-2 text-mystic-star/50 text-sm">{card.nameEn}</span>
                 <span className="ml-2 px-2 py-0.5 rounded-full bg-mystic-veil text-mystic-star text-xs">正位</span>
               </div>
-              {/* 正位解读 */}
-              <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-veil flex-1">
+              {/* 正位含义 */}
+              <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-veil">
                 <h3 className="text-sm font-heading text-mystic-gold mb-2">正位含义</h3>
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {card.keywords.upright.map((kw) => (
                     <span key={kw} className="px-2 py-0.5 bg-mystic-glow/20 text-mystic-star rounded text-xs">{kw}</span>
                   ))}
                 </div>
-                <p className="text-mystic-star text-sm leading-relaxed mb-4">{card.meanings.upright}</p>
+                <p className="text-mystic-star text-sm leading-relaxed">{card.meanings.upright}</p>
+              </div>
+              {/* 正位生活场景 */}
+              <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-veil">
                 <h3 className="text-sm font-heading text-mystic-gold mb-2">生活场景</h3>
                 <ul className="space-y-1">
                   {card.lifeScenes.upright.map((scene, i) => (
@@ -129,15 +132,18 @@ export function HomePage() {
                 <span className="ml-2 text-mystic-star/50 text-sm">{card.nameEn}</span>
                 <span className="ml-2 px-2 py-0.5 rounded-full bg-mystic-rose/20 text-mystic-rose text-xs">逆位</span>
               </div>
-              {/* 逆位解读 */}
-              <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-rose/20 flex-1">
+              {/* 逆位含义 */}
+              <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-rose/20">
                 <h3 className="text-sm font-heading text-mystic-rose mb-2">逆位含义</h3>
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {card.keywords.reversed.map((kw) => (
                     <span key={kw} className="px-2 py-0.5 bg-mystic-rose/20 text-mystic-rose rounded text-xs">{kw}</span>
                   ))}
                 </div>
-                <p className="text-mystic-star text-sm leading-relaxed mb-4">{card.meanings.reversed}</p>
+                <p className="text-mystic-star text-sm leading-relaxed">{card.meanings.reversed}</p>
+              </div>
+              {/* 逆位生活场景 */}
+              <div className="bg-mystic-deep/50 rounded-lg p-4 border border-mystic-rose/20">
                 <h3 className="text-sm font-heading text-mystic-rose mb-2">生活场景</h3>
                 <ul className="space-y-1">
                   {card.lifeScenes.reversed.map((scene, i) => (
