@@ -13,7 +13,7 @@ import { JournalPage } from "./routes/JournalPage";
 
 function App() {
   return (
-    <BrowserRouter basename="/Tarot_training">
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ProgressProvider>
         <Routes>
           <Route path="/" element={<AppShell />}>
