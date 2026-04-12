@@ -28,7 +28,7 @@ export function Sidebar() {
         <h1 className="font-heading text-mystic-gold text-2xl tracking-wider">
           塔罗学院
         </h1>
-        <p className="text-xs text-mystic-star/60 mt-1">Tarot Academy</p>
+        <p className="text-xs text-mystic-star mt-1">Tarot Academy</p>
       </div>
 
       {/* Nav */}
