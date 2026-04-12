@@ -1,7 +1,11 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProgressProvider } from "./context/ProgressContext";
 import { AppShell } from "./components/layout/AppShell";
-import { HomePage } from "./routes/HomePage";
+import { DailyPage } from "./routes/DailyPage";
+import { LearnPage } from "./routes/LearnPage";
+import { DailyDrawPage } from "./routes/DailyDrawPage";
+import { BodyMindSpiritPage } from "./routes/BodyMindSpiritPage";
+import { GazingPage } from "./routes/GazingPage";
 import { LibraryPage } from "./routes/LibraryPage";
 import { CardDetailPage } from "./routes/CardDetailPage";
 import { QuizPage } from "./routes/QuizPage";
@@ -17,7 +21,13 @@ function App() {
       <ProgressProvider>
         <Routes>
           <Route path="/" element={<AppShell />}>
-            <Route index element={<HomePage />} />
+            <Route index element={<Navigate to="/daily" replace />} />
+            <Route path="daily" element={<DailyPage />} />
+            <Route path="daily/learn" element={<LearnPage />} />
+            <Route path="daily/draw" element={<DailyDrawPage />} />
+            <Route path="daily/body-mind-spirit" element={<BodyMindSpiritPage />} />
+            <Route path="daily/gazing" element={<GazingPage />} />
+            <Route path="daily/imagination" element={<GazingPage imagination />} />
             <Route path="library" element={<LibraryPage />} />
             <Route path="library/:cardId" element={<CardDetailPage />} />
             <Route path="quiz" element={<QuizPage />} />

@@ -85,11 +85,16 @@ export interface QuizResult {
   timeSpentMs: number;
 }
 
+export type DailyMode = "single" | "body-mind-spirit" | "gazing" | "imagination";
+
 export interface DailyCardEntry {
   date: string;
   cardId: string;
   orientation: CardOrientation;
   journalNote?: string;
+  mode?: DailyMode;
+  // 身心灵模式的额外两张牌
+  extraCards?: Array<{ cardId: string; orientation: CardOrientation }>;
 }
 
 export interface CardNote {

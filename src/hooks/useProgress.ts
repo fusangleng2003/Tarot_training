@@ -55,12 +55,14 @@ export function useProgress() {
     }));
   }, []);
 
-  const updateDailyJournal = useCallback((date: string, note: string) => {
+  const updateDailyJournal = useCallback((date: string, note: string, mode?: string) => {
     setProgress((prev) => ({
       ...prev,
-      dailyCardHistory: prev.dailyCardHistory.map((e) =>
-        e.date === date ? { ...e, journalNote: note } : e
-      ),
+      dailyCardHistory: prev.dailyCardHistory.map((e) => {
+        if (e.date !== date) return e;
+        if (mode !== undefined && (e.mode ?? "single") !== mode) return e;
+        return { ...e, journalNote: note };
+      }),
     }));
   }, []);
 

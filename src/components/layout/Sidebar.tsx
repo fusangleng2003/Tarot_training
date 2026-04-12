@@ -9,7 +9,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: "/", label: "每日一牌", icon: "☀", stage: 1 },
+  { to: "/daily", label: "每日训练", icon: "☀", stage: 1 },
   { to: "/library", label: "卡牌图书馆", icon: "📚", stage: 1 },
   { to: "/quiz", label: "闪卡测验", icon: "🎯", stage: 1 },
   { to: "/progress", label: "学习进度", icon: "📊", stage: 1 },

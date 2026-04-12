@@ -52,12 +52,24 @@ export function JournalPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-mystic-gold text-xs font-heading">{entry.date}</span>
-                  <span className="text-mystic-star/40 text-[10px]">
-                    {entry.orientation === "upright" ? "正位" : "逆位"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {entry.mode && entry.mode !== "single" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-mystic-veil text-mystic-star/60">
+                        {{ "body-mind-spirit": "身心灵", gazing: "注视仪式", imagination: "想象仪式", single: "每日一抽", learn: "学习" }[entry.mode]}
+                      </span>
+                    )}
+                    <span className="text-mystic-star/40 text-[10px]">
+                      {entry.orientation === "upright" ? "正位" : "逆位"}
+                    </span>
+                  </div>
                 </div>
                 <div className="text-mystic-moon text-sm font-body">
                   {card?.name ?? entry.cardId}
+                  {entry.extraCards && entry.extraCards.length > 0 && (
+                    <span className="text-mystic-star/40 text-xs ml-2">
+                      + {entry.extraCards.map((e) => getCardById(e.cardId)?.name ?? e.cardId).join("、")}
+                    </span>
+                  )}
                 </div>
                 {entry.journalNote && (
                   <p className="text-mystic-star/70 text-sm mt-2 italic">
