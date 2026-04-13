@@ -11,6 +11,16 @@ interface ModeCard {
   color: "gold" | "rose" | "blue" | "purple";
 }
 
+const studyMode: ModeCard = {
+  to: "/daily/learn",
+  title: "学习",
+  subtitle: "Study",
+  icon: "⊕",
+  description: "随机抽一张牌，深入学习正位与逆位含义、关键词、生活场景，并记录你的笔记。",
+  tip: "适合系统学习每一张牌",
+  color: "gold",
+};
+
 const modes: ModeCard[] = [
   {
     to: "/daily/draw",
@@ -47,15 +57,6 @@ const modes: ModeCard[] = [
     description: "注视仪式的加强版。看一眼牌面后闭眼，想象自己身处牌中的世界，观察所见。",
     tip: "建议先练习注视仪式一段时间后再使用",
     color: "rose",
-  },
-  {
-    to: "/daily/learn",
-    title: "学习",
-    subtitle: "Study",
-    icon: "⊕",
-    description: "随机抽一张牌，深入学习正位与逆位含义、关键词、生活场景，并记录你的笔记。",
-    tip: "适合系统学习每一张牌",
-    color: "gold",
   },
 ];
 
@@ -101,9 +102,9 @@ export function DailyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-y-auto px-8 py-8">
+    <div className="h-screen flex flex-col overflow-hidden px-8 py-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 shrink-0">
         <h1 className="text-3xl font-heading text-mystic-gold">每日训练</h1>
         <p className="text-mystic-star/50 text-sm mt-1">
           {today}
@@ -122,8 +123,32 @@ export function DailyPage() {
         )}
       </div>
 
-      {/* Mode grid */}
-      <div className="grid grid-cols-2 gap-4 flex-1">
+      {/* All cards — 3 equal rows, 2 columns */}
+      <div className="grid grid-cols-2 grid-rows-3 gap-3 flex-1 min-h-0">
+        {/* Study card — spans full width, row 1 */}
+        {(() => {
+          const c = colorMap[studyMode.color];
+          return (
+            <button
+              onClick={() => navigate(studyMode.to)}
+              className={`col-span-2 text-left rounded-2xl border-2 ${c.border} ${c.glow} bg-mystic-deep/60 p-5 flex items-center gap-6 transition-all duration-300 cursor-pointer`}
+            >
+              <span className={`text-3xl ${c.icon}`}>{studyMode.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3">
+                  <span className="font-heading text-mystic-moon text-lg">{studyMode.title}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${c.badge}`}>{studyMode.subtitle}</span>
+                </div>
+                <p className="text-mystic-star/60 text-sm mt-1 leading-relaxed">{studyMode.description}</p>
+              </div>
+              <div className="text-mystic-star/30 text-xs shrink-0">
+                {studyMode.tip}
+              </div>
+            </button>
+          );
+        })()}
+
+        {/* 4 mode cards — rows 2 & 3 */}
         {modes.map((mode) => {
           const c = colorMap[mode.color];
           return (

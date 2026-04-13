@@ -12,8 +12,7 @@ const DESCRIPTIONS: Record<Filter, { title: string; lines: string[] }> = {
     title: "全部 78 张塔罗牌",
     lines: [
       "塔罗牌共 78 张，分为大阿卡纳（22 张）和小阿卡纳（56 张）两大部分。",
-      "大阿卡纳代表人生重大主题与命运转折；",
-      "小阿卡纳涵盖日常生活中的具体事件与情境。",
+      "大阿卡纳代表人生重大主题与命运转折；小阿卡纳涵盖日常生活中的具体事件与情境。",
     ],
   },
   major: {
@@ -207,11 +206,11 @@ export function LibraryPage() {
       </div>
 
       {/* Description bar */}
-      <div className="mb-3 px-6 py-5 bg-mystic-deep/60 border border-mystic-veil rounded-lg">
-        <div className="text-mystic-gold text-2xl font-bold mb-3">{desc.title}</div>
-        <div className="space-y-1.5">
+      <div className="mb-3 px-5 py-3 bg-mystic-deep/60 border border-mystic-veil rounded-lg">
+        <div className="text-mystic-gold text-base font-bold mb-1.5">{desc.title}</div>
+        <div className="space-y-0.5">
           {desc.lines.map((line, i) => (
-            <div key={i} className="text-mystic-moon text-lg leading-relaxed">{line}</div>
+            <div key={i} className="text-mystic-star/70 text-xs leading-relaxed">{line}</div>
           ))}
         </div>
       </div>
