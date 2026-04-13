@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSpreadById } from "../data/spreads";
 import { tarotCards } from "../data/cards";
 import { TarotCard } from "../components/card/TarotCard";
-import { GestureCardDrawer } from "../components/card/GestureCardDrawer";
+import { CardDrawer } from "../components/card/CardDrawer";
 import {
   analyzeSpread,
   buildSpreadAnalysisPrompt,
@@ -26,29 +26,7 @@ interface DrawnCard {
   revealed: boolean;
 }
 
-type DrawMode = "system" | "manual" | "gesture";
-type ReversalMode = "upright-only" | "light" | "balanced";
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function createShuffledDeck(): TarotCardType[] {
-  return shuffle([...tarotCards]);
-}
-
-function getOrientationByMode(mode: ReversalMode): CardOrientation {
-  if (mode === "upright-only") return "upright";
-  if (mode === "light") {
-    return Math.random() < 0.25 ? "reversed" : "upright";
-  }
-  return Math.random() < 0.5 ? "reversed" : "upright";
-}
+type DrawMode = "draw" | "manual";
 
 type AnalysisStep = "idle" | "form" | "loading" | "done" | "error";
 
@@ -58,13 +36,9 @@ export function SpreadPracticePage() {
   const spread = getSpreadById(spreadId ?? "");
 
   // Card drawing state
-  const [drawMode, setDrawMode] = useState<DrawMode>("system");
-  const [reversalMode, setReversalMode] = useState<ReversalMode>("light");
+  const [drawMode, setDrawMode] = useState<DrawMode>("draw");
   const [drawnCards, setDrawnCards] = useState<(DrawnCard | null)[]>(
     () => spread?.positions.map(() => null) ?? []
-  );
-  const [deckOrder, setDeckOrder] = useState<TarotCardType[]>(() =>
-    createShuffledDeck()
   );
   const [notes, setNotes] = useState("");
   const [cardSearch, setCardSearch] = useState("");
@@ -85,46 +59,7 @@ export function SpreadPracticePage() {
   const [selectedModel, setSelectedModel] = useState<GeminiModelId>(() =>
     getGeminiModel()
   );
-  const [gestureTargetPos, setGestureTargetPos] = useState<number | null>(null);
-
-  const drawCard = useCallback(
-    (posIndex: number) => {
-      if (drawnCards[posIndex]) return;
-      const usedIds = drawnCards.filter(Boolean).map((d) => d!.card.id);
-      const card = deckOrder.find((deckCard) => !usedIds.includes(deckCard.id));
-      if (!card) return;
-      const orientation = getOrientationByMode(reversalMode);
-
-      setDrawnCards((prev) => {
-        const next = [...prev];
-        next[posIndex] = { card, orientation, revealed: false };
-        return next;
-      });
-    },
-    [deckOrder, drawnCards, reversalMode]
-  );
-
-  const revealCard = useCallback((posIndex: number) => {
-    setDrawnCards((prev) => {
-      const next = [...prev];
-      if (next[posIndex]) {
-        next[posIndex] = { ...next[posIndex]!, revealed: true };
-      }
-      return next;
-    });
-  }, []);
-
-  const drawAll = useCallback(() => {
-    const positions = spread?.positions ?? [];
-    const selectedDeck = deckOrder.slice(0, positions.length);
-    setDrawnCards(
-      positions.map((_, i) => ({
-        card: selectedDeck[i],
-        orientation: getOrientationByMode(reversalMode),
-        revealed: true,
-      }))
-    );
-  }, [deckOrder, reversalMode, spread]);
+  const [showDrawer, setShowDrawer] = useState(false);
 
   const assignManualCard = useCallback((posIndex: number, cardId: string) => {
     const selectedCard = tarotCards.find((card) => card.id === cardId);
@@ -169,7 +104,6 @@ export function SpreadPracticePage() {
 
   const reset = () => {
     setDrawnCards(spread?.positions.map(() => null) ?? []);
-    setDeckOrder(createShuffledDeck());
     setNotes("");
     setCardSearch("");
     setDraggingCardId(null);
@@ -179,7 +113,7 @@ export function SpreadPracticePage() {
     setQuestion("");
     setIntuition("");
     setBackground("");
-    setGestureTargetPos(null);
+    setShowDrawer(false);
     abortRef.current?.abort();
   };
 
@@ -314,16 +248,16 @@ export function SpreadPracticePage() {
           <div className="flex rounded-lg border border-mystic-veil overflow-hidden">
             <button
               onClick={() => {
-                setDrawMode("system");
+                setDrawMode("draw");
                 reset();
               }}
               className={`px-3 py-1.5 text-xs transition-colors ${
-                drawMode === "system"
+                drawMode === "draw"
                   ? "bg-mystic-glow text-white"
                   : "text-mystic-star/70 hover:bg-mystic-deep/50"
               }`}
             >
-              系统抽牌
+              抽牌
             </button>
             <button
               onClick={() => {
@@ -338,19 +272,6 @@ export function SpreadPracticePage() {
             >
               手动输入
             </button>
-            <button
-              onClick={() => {
-                setDrawMode("gesture");
-                reset();
-              }}
-              className={`px-3 py-1.5 text-xs transition-colors ${
-                drawMode === "gesture"
-                  ? "bg-mystic-glow text-white"
-                  : "text-mystic-star/70 hover:bg-mystic-deep/50"
-              }`}
-            >
-              手势抽牌
-            </button>
           </div>
           <button
             onClick={() => setShowApiKeyInput((v) => !v)}
@@ -363,14 +284,6 @@ export function SpreadPracticePage() {
           >
             {hasApiKey ? "API ✓" : "API Key"}
           </button>
-          {drawMode === "system" && (
-            <button
-              onClick={drawAll}
-              className="px-4 py-1.5 bg-mystic-glow text-white rounded text-xs hover:bg-mystic-glow/80"
-            >
-              一键抽牌
-            </button>
-          )}
           <button
             onClick={reset}
             className="px-4 py-1.5 border border-mystic-veil text-mystic-star rounded text-xs hover:border-mystic-glow"
@@ -430,61 +343,18 @@ export function SpreadPracticePage() {
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <div className="text-sm font-heading text-mystic-gold">
-              {drawMode === "system" ? "系统抽牌模式" : drawMode === "gesture" ? "手势抽牌模式" : "手动输入模式"}
+              {drawMode === "draw" ? "抽牌模式" : "手动输入模式"}
             </div>
             <div className="text-xs text-mystic-star/60 mt-1">
-              {drawMode === "system"
-                ? "先洗整副牌，再按顺序抽出当前牌位；逆位概率取决于你的抽牌习惯。"
-                : drawMode === "gesture"
-                  ? "点击空牌位，在全屏界面中通过手势或点击从扇形牌阵中抽取一张牌。"
-                  : "从下方牌库拖动卡牌到牌位，或点击“放入此位”完成选择。"}
+              {drawMode === "draw"
+                ? "点击下方按钮开始抽牌，洗牌后依次选择所需的牌。正逆位各50%概率。"
+                : '从下方牌库拖动卡牌到牌位，或点击"放入此位"完成选择。'}
             </div>
           </div>
-          {(drawMode === "manual" || drawMode === "gesture") && (
-            <div className="text-xs text-mystic-star/50">
-              已选 {usedCardIds.length} / {spread.positions.length} 张
-            </div>
-          )}
+          <div className="text-xs text-mystic-star/50">
+            已选 {usedCardIds.length} / {spread.positions.length} 张
+          </div>
         </div>
-        {(drawMode === "system" || drawMode === "gesture") && (
-          <div className="mb-5 rounded-lg border border-mystic-veil bg-mystic-void/20 p-3">
-            <div className="mb-2 text-xs text-mystic-star/60">
-              逆位习惯设置：真实塔罗里逆位多少，取决于你洗牌时是否会让牌自由旋转。
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setReversalMode("upright-only")}
-                className={`rounded px-3 py-1.5 text-xs transition-colors ${
-                  reversalMode === "upright-only"
-                    ? "bg-mystic-gold text-mystic-void"
-                    : "border border-mystic-veil text-mystic-star/70 hover:border-mystic-glow"
-                }`}
-              >
-                仅正位
-              </button>
-              <button
-                onClick={() => setReversalMode("light")}
-                className={`rounded px-3 py-1.5 text-xs transition-colors ${
-                  reversalMode === "light"
-                    ? "bg-mystic-gold text-mystic-void"
-                    : "border border-mystic-veil text-mystic-star/70 hover:border-mystic-glow"
-                }`}
-              >
-                轻逆位（约25%）
-              </button>
-              <button
-                onClick={() => setReversalMode("balanced")}
-                className={`rounded px-3 py-1.5 text-xs transition-colors ${
-                  reversalMode === "balanced"
-                    ? "bg-mystic-gold text-mystic-void"
-                    : "border border-mystic-veil text-mystic-star/70 hover:border-mystic-glow"
-                }`}
-              >
-                自由逆位（约50%）
-              </button>
-            </div>
-          </div>
-        )}
         <div
           className={`grid gap-4 ${spread.positions.length <= 3 ? "grid-cols-3" : "grid-cols-5"} justify-items-center`}
         >
@@ -496,40 +366,18 @@ export function SpreadPracticePage() {
                   {pos.label}
                 </span>
 
-                {drawMode === "gesture" && !drawn ? (
-                  <button
-                    onClick={() => setGestureTargetPos(pos.index)}
-                    className="w-20 h-32 rounded-lg border-2 border-dashed border-mystic-glow/40 hover:border-mystic-gold/60 flex flex-col items-center justify-center transition-colors group gap-1"
-                  >
-                    <span className="text-mystic-glow/40 group-hover:text-mystic-gold text-lg">✦</span>
-                    <span className="text-mystic-star/30 group-hover:text-mystic-gold/60 text-[10px]">
-                      手势抽牌
-                    </span>
-                  </button>
-                ) : drawMode === "gesture" && drawn ? (
-                  <TarotCard
-                    card={drawn.card}
-                    orientation={drawn.orientation}
-                    size="sm"
-                  />
-                ) : !drawn && drawMode === "system" ? (
-                  <button
-                    onClick={() => drawCard(pos.index)}
-                    className="w-20 h-32 rounded-lg border-2 border-dashed border-mystic-veil hover:border-mystic-gold/50 flex items-center justify-center transition-colors"
-                  >
-                    <span className="text-mystic-star/30 text-xs">
-                      点击抽牌
-                    </span>
-                  </button>
-                ) : !drawn?.revealed && drawMode === "system" ? (
-                  <div
-                    onClick={() => revealCard(pos.index)}
-                    className="cursor-pointer"
-                  >
-                    <div className="w-20 h-32 rounded-lg border-2 border-mystic-gold/30 bg-gradient-to-b from-mystic-deep to-mystic-veil flex items-center justify-center hover:border-mystic-gold/60 transition-colors">
-                      <span className="text-mystic-gold text-lg">✦</span>
+                {drawMode === "draw" ? (
+                  drawn ? (
+                    <TarotCard
+                      card={drawn.card}
+                      orientation={drawn.orientation}
+                      size="sm"
+                    />
+                  ) : (
+                    <div className="w-20 h-32 rounded-lg border-2 border-dashed border-mystic-veil flex items-center justify-center">
+                      <span className="text-mystic-star/25 text-lg">✦</span>
                     </div>
-                  </div>
+                  )
                 ) : drawMode === "manual" ? (
                   <div
                     onDragOver={(event) => event.preventDefault()}
@@ -626,6 +474,17 @@ export function SpreadPracticePage() {
             );
           })}
         </div>
+
+        {drawMode === "draw" && !allRevealed && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setShowDrawer(true)}
+              className="px-6 py-2.5 bg-gradient-to-r from-mystic-glow/80 to-purple-600/80 hover:from-mystic-glow hover:to-purple-600 text-white rounded-lg text-sm font-heading transition-all"
+            >
+              开始抽牌
+            </button>
+          </div>
+        )}
       </div>
 
       {drawMode === "manual" && (
@@ -918,21 +777,28 @@ export function SpreadPracticePage() {
         </div>
       )}
 
-      {/* Gesture card drawer overlay */}
-      {gestureTargetPos !== null && (
-        <GestureCardDrawer
-          availableCards={tarotCards.filter((c) => !usedCardIds.includes(c.id))}
-          reversalMode={reversalMode}
-          positionLabel={spread.positions[gestureTargetPos]?.label ?? ""}
-          onCardDrawn={(card, orientation) => {
+      {/* Card drawer overlay */}
+      {showDrawer && (
+        <CardDrawer
+          availableCards={tarotCards}
+          positions={spread.positions
+            .filter((pos) => !drawnCards[pos.index])
+            .map((pos) => ({ index: pos.index, label: pos.label }))}
+          onComplete={(results) => {
             setDrawnCards((prev) => {
               const next = [...prev];
-              next[gestureTargetPos] = { card, orientation, revealed: true };
+              for (const r of results) {
+                next[r.posIndex] = {
+                  card: r.card,
+                  orientation: r.orientation,
+                  revealed: true,
+                };
+              }
               return next;
             });
-            setGestureTargetPos(null);
+            setShowDrawer(false);
           }}
-          onClose={() => setGestureTargetPos(null)}
+          onClose={() => setShowDrawer(false)}
         />
       )}
     </div>

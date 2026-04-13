@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type {
   TarotCard as TarotCardType,
   CardOrientation,
@@ -6,21 +6,25 @@ import type {
 
 /* ─── types ─── */
 
+interface PositionInfo {
+  index: number;
+  label: string;
+}
+
 interface Props {
   availableCards: TarotCardType[];
-  reversalMode: "upright-only" | "light" | "balanced";
-  positionLabel: string;
-  onCardDrawn: (card: TarotCardType, orientation: CardOrientation) => void;
+  positions: PositionInfo[];
+  onComplete: (
+    results: {
+      posIndex: number;
+      card: TarotCardType;
+      orientation: CardOrientation;
+    }[]
+  ) => void;
   onClose: () => void;
 }
 
 type Phase = "scatter" | "ready" | "revealing";
-
-interface Landmark {
-  x: number;
-  y: number;
-  z: number;
-}
 
 /* ─── helpers ─── */
 
@@ -33,32 +37,8 @@ function shuffleArr<T>(arr: T[]): T[] {
   return a;
 }
 
-function orientationByMode(
-  mode: "upright-only" | "light" | "balanced"
-): CardOrientation {
-  if (mode === "upright-only") return "upright";
-  if (mode === "light") return Math.random() < 0.25 ? "reversed" : "upright";
+function getRandomOrientation(): CardOrientation {
   return Math.random() < 0.5 ? "reversed" : "upright";
-}
-
-function loadCDN(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve();
-      return;
-    }
-    const el = document.createElement("script");
-    el.src = src;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.head.appendChild(el);
-  });
-}
-
-function isPinch(lm: Landmark[]): boolean {
-  const thumb = lm[4];
-  const index = lm[8];
-  return Math.hypot(thumb.x - index.x, thumb.y - index.y) < 0.05;
 }
 
 function makeScatter(count: number) {
@@ -75,11 +55,10 @@ const CARD_H = 108;
 
 /* ─── component ─── */
 
-export function GestureCardDrawer({
+export function CardDrawer({
   availableCards,
-  reversalMode,
-  positionLabel,
-  onCardDrawn,
+  positions,
+  onComplete,
   onClose,
 }: Props) {
   const [shuffledCards] = useState(() => shuffleArr([...availableCards]));
@@ -88,29 +67,27 @@ export function GestureCardDrawer({
   // animation phases
   const [phase, setPhase] = useState<Phase>("scatter");
   const [scatterPos, setScatterPos] = useState(() => makeScatter(totalCards));
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isFlipped, setIsFlipped] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [resultOrientation, setResultOrientation] =
+
+  // sequential selection state
+  const [pickedResults, setPickedResults] = useState<
+    { posIndex: number; card: TarotCardType; orientation: CardOrientation }[]
+  >([]);
+  const [revealingCardIndex, setRevealingCardIndex] = useState<number | null>(
+    null
+  );
+  const [revealedOrientation, setRevealedOrientation] =
     useState<CardOrientation>("upright");
+  const [isFlipped, setIsFlipped] = useState(false);
 
-  // gesture tracking
-  const [gestureStatus, setGestureStatus] = useState<
-    "off" | "loading" | "active" | "failed"
-  >("off");
-  const [cursorPos, setCursorPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cameraRef = useRef<any>(null);
-  const selectingRef = useRef(false);
+  const currentPickIndex = pickedResults.length;
+  const allPicked = currentPickIndex >= positions.length;
+  const currentPosition = allPicked ? null : positions[currentPickIndex];
+  const pickedCardIndices = new Set(
+    pickedResults.map((r) => shuffledCards.indexOf(r.card))
+  );
 
-  // keep latest selectCard in a ref for gesture callback
-  const selectCardRef = useRef<(i: number) => void>();
-
-  /* ── phase animation: scatter(×3) → ready ── */
+  /* ── phase animation: scatter(x3) → ready ── */
   useEffect(() => {
     const timers = [
       setTimeout(() => setScatterPos(makeScatter(totalCards)), 500),
@@ -129,101 +106,67 @@ export function GestureCardDrawer({
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  /* ── cleanup camera ── */
-  useEffect(() => {
-    return () => {
-      cameraRef.current?.stop?.();
-    };
-  }, []);
-
   /* ── select a card ── */
   const selectCard = useCallback(
     (index: number) => {
-      if (phase !== "ready" || selectingRef.current) return;
-      selectingRef.current = true;
-      const ori = orientationByMode(reversalMode);
-      setResultOrientation(ori);
-      setSelectedIndex(index);
+      if (phase !== "ready" || revealingCardIndex !== null || allPicked) return;
+      if (pickedCardIndices.has(index)) return;
+
+      const ori = getRandomOrientation();
+      setRevealedOrientation(ori);
+      setRevealingCardIndex(index);
       setPhase("revealing");
+
+      // flip after zoom
       setTimeout(() => setIsFlipped(true), 700);
-      setTimeout(() => onCardDrawn(shuffledCards[index], ori), 2200);
-    },
-    [phase, shuffledCards, reversalMode, onCardDrawn]
-  );
-  selectCardRef.current = selectCard;
 
-  /* ── enable hand tracking ── */
-  const enableGesture = useCallback(async () => {
-    if (!videoRef.current) return;
-    setGestureStatus("loading");
-    try {
-      await loadCDN(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
-      );
-      await loadCDN(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
-      );
+      // after reveal, commit result and move to next
+      setTimeout(() => {
+        const result = {
+          posIndex: currentPosition!.index,
+          card: shuffledCards[index],
+          orientation: ori,
+        };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const W = window as any;
-      const hands = new W.Hands({
-        locateFile: (file: string) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-      });
-      hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.75,
-        minTrackingConfidence: 0.75,
-      });
+        setPickedResults((prev) => {
+          const next = [...prev, result];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      hands.onResults((results: any) => {
-        const lm = results.multiHandLandmarks?.[0] as
-          | Landmark[]
-          | undefined;
-        if (lm) {
-          const tip = lm[8];
-          const sx = (1 - tip.x) * window.innerWidth;
-          const sy = tip.y * window.innerHeight;
-          setCursorPos({ x: sx, y: sy });
-
-          const el = document
-            .elementFromPoint(sx, sy)
-            ?.closest("[data-gesture-card]");
-          if (el) {
-            const idx = parseInt(el.getAttribute("data-gesture-card")!);
-            setHoveredIndex(idx);
-            if (isPinch(lm)) selectCardRef.current?.(idx);
+          // if this was the last card, complete
+          if (next.length >= positions.length) {
+            setTimeout(() => onComplete(next), 400);
           }
-        } else {
-          setCursorPos(null);
-        }
-      });
 
-      const camera = new W.Camera(videoRef.current, {
-        onFrame: async () => {
-          await hands.send({ image: videoRef.current! });
-        },
-        width: 640,
-        height: 480,
-      });
-      await camera.start();
-      cameraRef.current = camera;
-      setGestureStatus("active");
-    } catch {
-      setGestureStatus("failed");
-    }
-  }, []);
+          return next;
+        });
+
+        // reset revealing state for next pick
+        setRevealingCardIndex(null);
+        setIsFlipped(false);
+        setPhase("ready");
+      }, 2200);
+    },
+    [
+      phase,
+      revealingCardIndex,
+      allPicked,
+      pickedCardIndices,
+      currentPosition,
+      shuffledCards,
+      positions.length,
+      onComplete,
+    ]
+  );
 
   /* ── compute card position ── */
   const getCardTransform = (index: number): React.CSSProperties => {
-    const isSelected = selectedIndex === index;
+    const isRevealing = revealingCardIndex === index;
+    const isPicked = pickedCardIndices.has(index);
     const isHovered = hoveredIndex === index;
-    const isDimmed = selectedIndex !== null && !isSelected;
+    const isDimmed =
+      (revealingCardIndex !== null && !isRevealing) || isPicked;
 
-    // selected → zoom to center
-    if (isSelected) {
+    // revealing card → zoom to center
+    if (isRevealing) {
       return {
         transform: `translate(${window.innerWidth / 2 - CARD_W / 2}px, ${window.innerHeight * 0.35 - CARD_H / 2}px) scale(2.8)`,
         zIndex: 1000,
@@ -231,21 +174,37 @@ export function GestureCardDrawer({
       };
     }
 
+    // already picked → hidden
+    if (isPicked) {
+      return {
+        transform: `translate(${window.innerWidth / 2 - CARD_W / 2}px, ${window.innerHeight + 50}px)`,
+        zIndex: 0,
+        opacity: 0,
+        pointerEvents: "none",
+      };
+    }
+
     let tx: number, ty: number, rot: number;
 
     if (phase === "scatter") {
       const sp = scatterPos[index] ?? { x: 0, y: 0, rot: 0 };
-      // offset from center of viewport
       tx = window.innerWidth / 2 + sp.x - CARD_W / 2;
       ty = window.innerHeight * 0.45 + sp.y - CARD_H / 2;
       rot = sp.rot;
     } else {
-      // fan arc
+      // fan arc — exclude already picked cards from layout
+      const visibleIndices = Array.from(
+        { length: totalCards },
+        (_, i) => i
+      ).filter((i) => !pickedCardIndices.has(i));
+      const visiblePos = visibleIndices.indexOf(index);
+      const visibleCount = visibleIndices.length;
+
       const spreadAngle = 140;
       const radius = Math.min(window.innerHeight * 0.45, 450);
-      const maxAngleRad = (spreadAngle / 2) * Math.PI / 180;
+      const maxAngleRad = ((spreadAngle / 2) * Math.PI) / 180;
       const angle =
-        ((index / Math.max(totalCards - 1, 1)) - 0.5) * spreadAngle;
+        (visiblePos / Math.max(visibleCount - 1, 1) - 0.5) * spreadAngle;
       const rad = (angle * Math.PI) / 180;
 
       const arcX = Math.sin(rad) * radius;
@@ -261,10 +220,16 @@ export function GestureCardDrawer({
     return {
       transform: `translate(${tx}px, ${ty + hoverY}px) rotate(${rot}deg)`,
       zIndex: isHovered ? 999 : index,
-      opacity: isDimmed ? 0.06 : 1,
+      opacity: isDimmed ? 0.15 : 1,
       pointerEvents: isDimmed ? "none" : "auto",
     };
   };
+
+  /* ── picked cards summary ── */
+  const pickedSummary = pickedResults.map((r) => {
+    const pos = positions.find((p) => p.index === r.posIndex);
+    return { label: pos?.label ?? "", card: r.card, orientation: r.orientation };
+  });
 
   return (
     <div
@@ -278,25 +243,48 @@ export function GestureCardDrawer({
       {/* ── header ── */}
       <div className="relative z-10 pt-5 pb-2 text-center">
         <div className="text-mystic-gold text-base font-heading tracking-widest">
-          为「{positionLabel}」抽取一张牌
+          {allPicked
+            ? "抽牌完成"
+            : `为「${currentPosition?.label}」抽取一张牌`}
         </div>
         <div className="text-mystic-star/40 text-xs mt-1.5 tracking-wide">
           {phase === "scatter"
             ? "洗牌中..."
-            : phase === "ready"
-              ? gestureStatus === "active"
-                ? "移动手指并捏合选牌，或直接点击"
-                : "点击一张牌进行选择"
-              : ""}
+            : allPicked
+              ? ""
+              : revealingCardIndex !== null
+                ? ""
+                : `点击一张牌 (${currentPickIndex + 1}/${positions.length})`}
         </div>
       </div>
+
+      {/* ── picked cards indicator ── */}
+      {pickedSummary.length > 0 && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 flex gap-3">
+          {pickedSummary.map((item, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center gap-1 bg-mystic-void/60 rounded-lg px-2.5 py-1.5 border border-mystic-gold/20"
+            >
+              <span className="text-[9px] text-mystic-gold/70">
+                {item.label}
+              </span>
+              <span className="text-[10px] text-mystic-moon">
+                {item.card.name}
+              </span>
+              <span className="text-[8px] text-mystic-star/50">
+                {item.orientation === "upright" ? "正位" : "逆位"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── card fan ── */}
       <div className="absolute inset-0">
         {shuffledCards.map((card, i) => (
           <div
             key={card.id}
-            data-gesture-card={i}
             className="absolute cursor-pointer"
             style={{
               width: CARD_W,
@@ -308,7 +296,8 @@ export function GestureCardDrawer({
             onClick={() => selectCard(i)}
             onMouseEnter={() =>
               phase === "ready" &&
-              selectedIndex === null &&
+              revealingCardIndex === null &&
+              !pickedCardIndices.has(i) &&
               setHoveredIndex(i)
             }
             onMouseLeave={() => hoveredIndex === i && setHoveredIndex(null)}
@@ -319,7 +308,7 @@ export function GestureCardDrawer({
               style={{
                 transformStyle: "preserve-3d",
                 transform:
-                  selectedIndex === i && isFlipped
+                  revealingCardIndex === i && isFlipped
                     ? "rotateY(180deg)"
                     : "rotateY(0deg)",
                 transition: "transform 0.6s ease-in-out",
@@ -348,8 +337,8 @@ export function GestureCardDrawer({
                     src={card.imageUrl}
                     alt={card.name}
                     className={`w-full h-full object-cover ${
-                      selectedIndex === i &&
-                      resultOrientation === "reversed"
+                      revealingCardIndex === i &&
+                      revealedOrientation === "reversed"
                         ? "rotate-180"
                         : ""
                     }`}
@@ -376,83 +365,31 @@ export function GestureCardDrawer({
       </div>
 
       {/* ── revealed card info ── */}
-      {isFlipped && selectedIndex !== null && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-[1001] text-center" style={{ top: "62%" }}>
+      {isFlipped && revealingCardIndex !== null && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-[1001] text-center"
+          style={{ top: "62%" }}
+        >
           <div className="text-mystic-gold text-xl font-heading tracking-wider">
-            {shuffledCards[selectedIndex].name}
+            {shuffledCards[revealingCardIndex].name}
           </div>
           <div className="text-mystic-star/60 text-xs mt-1">
-            {shuffledCards[selectedIndex].nameEn}
+            {shuffledCards[revealingCardIndex].nameEn}
             {" · "}
-            {resultOrientation === "upright" ? "正位" : "逆位"}
+            {revealedOrientation === "upright" ? "正位" : "逆位"}
           </div>
         </div>
       )}
 
       {/* ── bottom controls ── */}
       <div className="absolute bottom-5 left-0 right-0 flex justify-center items-center gap-3 z-10">
-        {gestureStatus === "off" && (
-          <button
-            onClick={enableGesture}
-            className="px-4 py-2 border border-mystic-gold/40 text-mystic-gold/70 rounded-lg text-xs hover:bg-mystic-gold/10 transition-colors"
-          >
-            开启手势追踪
-          </button>
-        )}
-        {gestureStatus === "loading" && (
-          <span className="px-4 py-2 text-mystic-gold/50 text-xs animate-pulse">
-            正在加载手势识别模型...
-          </span>
-        )}
-        {gestureStatus === "active" && (
-          <span className="px-4 py-2 text-emerald-400/70 text-xs">
-            手势追踪已开启
-          </span>
-        )}
-        {gestureStatus === "failed" && (
-          <span className="px-4 py-2 text-red-400/70 text-xs">
-            手势加载失败，请用鼠标点击选牌
-          </span>
-        )}
         <button
           onClick={onClose}
           className="px-4 py-2 border border-mystic-star/20 text-mystic-star/50 rounded-lg text-xs hover:bg-mystic-star/10 transition-colors"
         >
-          取消
+          {allPicked ? "关闭" : "取消"}
         </button>
       </div>
-
-      {/* ── webcam preview ── */}
-      <div
-        className={`fixed bottom-14 left-4 rounded-lg border border-mystic-gold/30 overflow-hidden z-20 transition-all duration-500 ${
-          gestureStatus === "active"
-            ? "w-36 h-28 opacity-60"
-            : "w-0 h-0 opacity-0"
-        }`}
-      >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-          style={{ transform: "scaleX(-1)" }}
-        />
-      </div>
-
-      {/* ── virtual cursor ── */}
-      {cursorPos && (
-        <div
-          className="fixed w-5 h-5 rounded-full border-2 border-mystic-gold pointer-events-none z-[9999]"
-          style={{
-            left: cursorPos.x,
-            top: cursorPos.y,
-            transform: "translate(-50%, -50%)",
-            backgroundColor: "rgba(212, 168, 67, 0.3)",
-            boxShadow: "0 0 15px rgba(212, 168, 67, 0.5)",
-          }}
-        />
-      )}
     </div>
   );
 }
