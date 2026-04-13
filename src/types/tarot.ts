@@ -26,6 +26,7 @@ export interface TarotCard {
   };
 
   description: string;
+  bookInterpretation?: string;
   symbolism: string[];
   lifeScenes: {
     upright: string[];

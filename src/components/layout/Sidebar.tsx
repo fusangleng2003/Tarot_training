@@ -13,7 +13,7 @@ const navItems: NavItem[] = [
   { to: "/library", label: "卡牌图书馆", icon: "📚", stage: 1 },
   { to: "/quiz", label: "闪卡测验", icon: "🎯", stage: 1 },
   { to: "/progress", label: "学习进度", icon: "📊", stage: 1 },
-  { to: "/spreads", label: "牌阵练习", icon: "🔮", stage: 2 },
+  { to: "/spreads", label: "牌阵练习", icon: "🔮", stage: 1 },
   { to: "/system", label: "知识体系", icon: "🌟", stage: 3 },
   { to: "/journal", label: "个人日志", icon: "📝", stage: 4 },
 ];
