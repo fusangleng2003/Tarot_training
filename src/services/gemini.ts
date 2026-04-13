@@ -23,7 +23,11 @@ export type GeminiModelId = (typeof GEMINI_MODELS)[number]["id"];
 const DEFAULT_GEMINI_MODEL: GeminiModelId = "gemini-2.5-flash";
 
 export function getGeminiApiKey(): string {
-  return localStorage.getItem(GEMINI_KEY_STORAGE) ?? "";
+  return (
+    import.meta.env.VITE_GEMINI_API_KEY ||
+    localStorage.getItem(GEMINI_KEY_STORAGE) ||
+    ""
+  );
 }
 
 export function setGeminiApiKey(key: string) {

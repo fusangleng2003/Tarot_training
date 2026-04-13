@@ -15,6 +15,7 @@ import {
   type GeminiModelId,
   type SpreadAnalysisInput,
 } from "../services/gemini";
+import { AnalysisResultView } from "../components/analysis/AnalysisResultView";
 import type {
   CardOrientation,
   TarotCard as TarotCardType,
@@ -704,25 +705,16 @@ export function SpreadPracticePage() {
 
           {(analysisStep === "loading" || analysisStep === "done") &&
             analysisResult && (
-              <div className="bg-mystic-deep/50 rounded-lg p-5 border border-mystic-glow/30">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-heading text-mystic-gold">
-                    ✦ AI 解读结果
-                  </h3>
-                  {analysisStep === "loading" && (
-                    <span className="text-xs text-mystic-star/50 animate-pulse">
-                      解读中...
-                    </span>
-                  )}
-                </div>
-                <div className="prose prose-invert prose-sm max-w-none text-mystic-star/90 leading-relaxed whitespace-pre-wrap">
-                  {analysisResult}
-                </div>
+              <div className="bg-mystic-deep/40 rounded-xl p-5 border border-mystic-glow/20">
+                <AnalysisResultView
+                  text={analysisResult}
+                  isStreaming={analysisStep === "loading"}
+                />
                 {analysisStep === "done" && (
-                  <div className="mt-4 pt-3 border-t border-mystic-veil flex gap-2">
+                  <div className="mt-4 pt-3 border-t border-mystic-veil/40 flex gap-2">
                     <button
                       onClick={() => setAnalysisStep("form")}
-                      className="px-3 py-1.5 border border-mystic-veil text-mystic-star/70 rounded text-xs hover:border-mystic-glow"
+                      className="px-3 py-1.5 border border-mystic-veil text-mystic-star/70 rounded text-xs hover:border-mystic-glow transition-colors"
                     >
                       重新提问
                     </button>
@@ -730,7 +722,7 @@ export function SpreadPracticePage() {
                       onClick={() => {
                         navigator.clipboard.writeText(analysisResult);
                       }}
-                      className="px-3 py-1.5 border border-mystic-veil text-mystic-star/70 rounded text-xs hover:border-mystic-glow"
+                      className="px-3 py-1.5 border border-mystic-veil text-mystic-star/70 rounded text-xs hover:border-mystic-glow transition-colors"
                     >
                       复制结果
                     </button>
