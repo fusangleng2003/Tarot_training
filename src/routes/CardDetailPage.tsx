@@ -70,72 +70,87 @@ export function CardDetailPage() {
           <p className="text-mystic-gold/70 text-sm italic text-center">"{card.affirmation}"</p>
         </div>
 
-        {/* 右侧：信息区，可滚动 */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+        {/* 右侧：信息区 */}
+        <div className="flex-1 flex flex-col overflow-hidden px-6 py-4 gap-4">
 
-          {/* 正位 + 逆位并排 */}
-          <div className="grid grid-cols-2 gap-5">
-            <div className="bg-mystic-deep/50 rounded-xl p-5 border border-mystic-veil">
-              <h3 className="text-base font-heading text-mystic-gold mb-3">正位含义</h3>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {card.keywords.upright.map((kw) => (
-                  <span key={kw} className="px-2.5 py-1 bg-mystic-glow/20 text-mystic-star rounded text-sm">{kw}</span>
-                ))}
-              </div>
-              <p className="text-mystic-star text-base leading-relaxed">{card.meanings.upright}</p>
-            </div>
-            <div className="bg-mystic-deep/50 rounded-xl p-5 border border-mystic-rose/20">
-              <h3 className="text-base font-heading text-mystic-rose mb-3">逆位含义</h3>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {card.keywords.reversed.map((kw) => (
-                  <span key={kw} className="px-2.5 py-1 bg-mystic-rose/20 text-mystic-rose rounded text-sm">{kw}</span>
-                ))}
-              </div>
-              <p className="text-mystic-star text-base leading-relaxed">{card.meanings.reversed}</p>
+          {/* 画面解读 — 全宽顶部 */}
+          <div className="shrink-0 bg-mystic-deep/50 rounded-xl p-4 border border-mystic-veil">
+            <h3 className="text-sm font-heading text-mystic-gold mb-2">画面细节 · 象征符号</h3>
+            <p className="text-mystic-star text-sm leading-relaxed mb-2">{card.description}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {card.symbolism.map((s, i) => (
+                <span key={i} className="text-mystic-star/80 text-sm flex items-start gap-1.5">
+                  <span className="text-mystic-gold/40">✦</span>{s}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* 生活联想 + 画面细节 并排 */}
-          <div className="grid grid-cols-2 gap-5">
-            <div className="bg-mystic-deep/50 rounded-xl p-5 border border-mystic-veil">
-              <h3 className="text-base font-heading text-mystic-gold mb-3">生活联想</h3>
-              <ul className="space-y-2">
-                {card.lifeScenes.upright.map((scene, i) => (
-                  <li key={i} className="text-mystic-star text-base flex items-start gap-2">
-                    <span className="text-mystic-gold/40 mt-0.5">·</span>{scene}
-                  </li>
-                ))}
-              </ul>
+          {/* 正位 + 逆位 两列 */}
+          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            {/* 正位列 */}
+            <div className="flex flex-col gap-3 min-h-0">
+              <div className="bg-mystic-deep/50 rounded-xl p-4 border border-mystic-veil flex-1 min-h-0 overflow-y-auto">
+                <h3 className="text-sm font-heading text-mystic-gold mb-2">正位含义</h3>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {card.keywords.upright.map((kw) => (
+                    <span key={kw} className="px-2 py-0.5 bg-mystic-glow/20 text-mystic-star rounded text-xs">{kw}</span>
+                  ))}
+                </div>
+                <p className="text-mystic-star text-sm leading-relaxed">{card.meanings.upright}</p>
+              </div>
+              <div className="bg-mystic-deep/50 rounded-xl p-4 border border-mystic-veil flex-1 min-h-0 overflow-y-auto">
+                <h3 className="text-sm font-heading text-mystic-gold mb-2">生活场景</h3>
+                <ul className="space-y-1.5">
+                  {card.lifeScenes.upright.map((scene, i) => (
+                    <li key={i} className="text-mystic-star text-sm flex items-start gap-2">
+                      <span className="text-mystic-gold/40 mt-0.5">·</span>{scene}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div className="bg-mystic-deep/50 rounded-xl p-5 border border-mystic-veil">
-              <h3 className="text-base font-heading text-mystic-gold mb-3">画面细节 · 象征符号</h3>
-              <p className="text-mystic-star text-base leading-relaxed mb-3">{card.description}</p>
-              <ul className="space-y-2">
-                {card.symbolism.map((s, i) => (
-                  <li key={i} className="text-mystic-star/80 text-base flex items-start gap-2">
-                    <span className="text-mystic-gold/40 mt-0.5">✦</span>{s}
-                  </li>
-                ))}
-              </ul>
+
+            {/* 逆位列 */}
+            <div className="flex flex-col gap-3 min-h-0">
+              <div className="bg-mystic-deep/50 rounded-xl p-4 border border-mystic-rose/20 flex-1 min-h-0 overflow-y-auto">
+                <h3 className="text-sm font-heading text-mystic-rose mb-2">逆位含义</h3>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {card.keywords.reversed.map((kw) => (
+                    <span key={kw} className="px-2 py-0.5 bg-mystic-rose/20 text-mystic-rose rounded text-xs">{kw}</span>
+                  ))}
+                </div>
+                <p className="text-mystic-star text-sm leading-relaxed">{card.meanings.reversed}</p>
+              </div>
+              <div className="bg-mystic-deep/50 rounded-xl p-4 border border-mystic-rose/20 flex-1 min-h-0 overflow-y-auto">
+                <h3 className="text-sm font-heading text-mystic-rose mb-2">生活场景</h3>
+                <ul className="space-y-1.5">
+                  {card.lifeScenes.reversed.map((scene, i) => (
+                    <li key={i} className="text-mystic-star text-sm flex items-start gap-2">
+                      <span className="text-mystic-rose/40 mt-0.5">·</span>{scene}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
 
-          {/* 数字学 + 笔记 并排 */}
-          <div className="grid grid-cols-2 gap-5">
+          {/* 底部：数字学 + 笔记 */}
+          <div className="shrink-0 grid grid-cols-2 gap-4">
             {card.numerology && (
-              <div className="bg-mystic-deep/50 rounded-xl p-5 border border-mystic-veil">
-                <h3 className="text-base font-heading text-mystic-gold mb-3">数字学</h3>
-                <p className="text-mystic-star text-base leading-relaxed">{card.numerology}</p>
+              <div className="bg-mystic-deep/50 rounded-xl p-4 border border-mystic-veil">
+                <h3 className="text-sm font-heading text-mystic-gold mb-1.5">数字学</h3>
+                <p className="text-mystic-star text-sm leading-relaxed">{card.numerology}</p>
               </div>
             )}
-            <div className={`bg-mystic-deep/50 rounded-xl p-5 border border-mystic-veil ${!card.numerology ? "col-span-2" : ""}`}>
-              <h3 className="text-base font-heading text-mystic-gold mb-3">我的笔记</h3>
+            <div className={`bg-mystic-deep/50 rounded-xl p-4 border border-mystic-veil ${!card.numerology ? "col-span-2" : ""}`}>
+              <h3 className="text-sm font-heading text-mystic-gold mb-1.5">我的笔记</h3>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 onBlur={() => saveNote(card.id, note)}
                 placeholder="写下你对这张牌的理解和联想..."
-                className="w-full h-28 bg-mystic-void/50 border border-mystic-veil rounded-lg p-3 text-mystic-moon text-base resize-none focus:outline-none focus:border-mystic-glow placeholder:text-mystic-star/30"
+                className="w-full h-16 bg-mystic-void/50 border border-mystic-veil rounded-lg p-2 text-mystic-moon text-sm resize-none focus:outline-none focus:border-mystic-glow placeholder:text-mystic-star/30"
               />
             </div>
           </div>
